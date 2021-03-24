@@ -3,6 +3,7 @@ import numpy as np
 import jieba
 import jieba.posseg as pseg
 import jieba.analyse as anse
+import logging
 
 from urllib import request
 from lxml import etree
@@ -16,11 +17,10 @@ opt = parser.parse_args()
 
 class MultiEntityExtract(object):
     """docstring for MultiEntityExtract"""
-    def __init__(self, opt):
+    def __init__(self, config):
         super(MultiEntityExtract, self).__init__()
-        self.opt = opt
+        self.opt = config
         self.embed_dict = self.load_embedding_dict()
-
 
     # 加载embedding字典
     def load_embedding_dict(self):
@@ -28,8 +28,8 @@ class MultiEntityExtract(object):
         if embed_file_path is None:
             embed_file_path = 'word_vec_300.bin'
         try:
+            embed_dict = {}
             with open(embed_file_path, 'r', encoding='utf-8') as f:
-                embed_dict = {}
                 counter = 0
                 for line in f: 
                     line = line.strip().split(' ')
@@ -46,12 +46,11 @@ class MultiEntityExtract(object):
 
                 embed_dict['<pad>'] = np.zeros(self.opt.embed_size)
                 print("loaded %d words totally" % counter)
-
         except Exception as e:
+            logging.exception(e)
             raise ValueError('缺少embedding文件')
-            embed_dict = None
-        finally:
-            return embed_dict
+
+        return embed_dict
 
     # 根据单词获取对应的embedding
     def get_word_embedding(self, word):
@@ -146,7 +145,7 @@ class MultiEntityExtract(object):
         for tag in candidates:
             ret.append([tag[0], self.cosine_similarity(sent_embed, tag[1])])
 
-        candidates = sorted(ret, key=lambda x:x[1], reverse=True)
+        candidates = sorted(ret, key=lambda x: x[1], reverse=True)
         return candidates[:3]
 
 
